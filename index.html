@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-dnevnik v2.1 - Pro</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0284c7">
+    
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%230284c7'/><text x='180' y='320' font-family='sans-serif' font-size='200' font-weight='bold' fill='%23ffffff'>E</text><text x='320' y='250' font-family='sans-serif' font-size='120' font-weight='bold' fill='%23ffffff'>+</text></svg>">
+
+    <script>
+        const mojManifest = {
+            "name": "E-dnevnik v2.1 Pro",
+            "short_name": "E-dnevnik Plus",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#0f172a",
+            "theme-color": "#0284c7",
+            "description": "Najbolji simulator ocjena i panik gumb za školu.",
+            "icons": [{ 
+                "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%230284c7'/><text x='180' y='320' font-family='sans-serif' font-size='200' font-weight='bold' fill='%23ffffff'>E</text><text x='320' y='250' font-family='sans-serif' font-size='120' font-weight='bold' fill='%23ffffff'>+</text></svg>", 
+                "sizes": "512x512", 
+                "type": "image/png", 
+                "purpose": "any maskable" 
+            }]
+        };
+        const blobManifest = new Blob([JSON.stringify(mojManifest)], {type: 'application/json'});
+        const linkManifest = document.createElement('link'); linkManifest.rel = 'manifest'; linkManifest.href = URL.createObjectURL(blobManifest); document.head.appendChild(linkManifest);
+
+        if ('serviceWorker' in navigator) {
+            const swKod = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => e.waitUntil(clients.claim())); self.addEventListener('fetch', e => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });`;
+            navigator.serviceWorker.register(URL.createObjectURL(new Blob([swKod], {type: 'application/javascript'}))).catch(err => console.log("SW Error", err));
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg-boja: #0f172a; --tekst-boja: #f8fafc; --kartica-bg: #1e293b; --border-boja: #334155;
+            --pod-bg: #0f172a; --tekst-svijetli: #94a3b8; --gumb-sekundarni: #334155; --gumb-sekundarni-tekst: #f8fafc; --accent-boja: #38bdf8;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-boja); color: var(--tekst-boja); margin: 0; padding: 0; }
+        .header { background-color: #0284c7; color: white; padding: 15px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .header-naslov-lijevo { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+        .header-desno-grupa { display: flex; align-items: center; gap: 15px; }
+        .ime-trenutnog-racuna { font-size: 13px; font-weight: bold; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
+        .gumb-zupcanik { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        .postavke-blok-panel { display: none; position: absolute; top: 60px; right: 10px; background-color: var(--kartica-bg); border-radius: 12px; padding: 15px; width: 280px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); border: 1px solid var(--border-boja); z-index: 150; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 200; overflow-y: auto; padding: 20px 0; box-sizing: border-box; backdrop-filter: blur(4px); }
+        .modal-sadrzaj { position: relative; margin: 0 auto; background: var(--kartica-bg); padding: 25px; border-radius: 16px; width: 90%; max-width: 450px; border: 1px solid var(--border-boja); }
+        .sekcija-box { border: 1px solid var(--border-boja); border-radius: 8px; padding: 10px; margin-bottom: 12px; background-color: var(--pod-bg); }
+        .sekcija-naslov { font-size: 11px; font-weight: bold; margin-bottom: 6px; color: var(--accent-boja); text-transform: uppercase; }
+        .container { max-width: 500px; margin: 0 auto; padding: 15px; box-sizing: border-box; }
+        
+        .glavni-prosjek-box { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 20px; margin-bottom: 15px; border: 1px solid #38bdf8; box-shadow: 0 4px 20px rgba(56, 189, 248, 0.15); text-align: center; }
+        .glavni-prosjek-iznos { font-size: 42px; color: #38bdf8; font-weight: 900; margin: 5px 0; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+        .roast-poruka { font-size: 13px; font-style: italic; color: #fb7185; font-weight: bold; min-height: 18px; margin-top: 5px; }
+
+        .sort-bar { display: flex; gap: 5px; margin-bottom: 15px; }
+        .sort-bar button { flex: 1; padding: 8px; font-size: 11px; font-weight: bold; border-radius: 8px; cursor: pointer; border: 1px solid var(--border-boja); background: var(--kartica-bg); color: var(--tekst-boja); }
+        .sort-bar button.aktivni-sort { background: #0284c7; color: white; border-color: #38bdf8; }
+        
+        .predmet-kartica { background-color: var(--kartica-bg); border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border-boja); position: relative; }
+        .predmet-kartica.kritican { border-left: 5px solid #ef4444; }
+        .predmet-kartica.stabilan { border-left: 5px solid #22c55e; }
+        .predmet-glavno { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .predmet-info h4 { margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .plavi-kruzic { background: #0284c7; color: white; width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 900; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        
+        .prikaz-cilja-box { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 8px; border-radius: 8px; font-size: 12px; margin-top: 8px; font-weight: 600; }
+
+        .ocjena-broj { display: inline-block; background-color: #334155; padding: 6px 12px; margin: 3px; border-radius: 8px; font-weight: 700; cursor: pointer; border: 1px solid var(--border-boja); }
+        .ocjena-broj.simulirana { background: #e11d48 !important; color: white; border-color: #fda4af; }
+        
+        input, select { width: 100%; padding: 10px; box-sizing: border-box; border-radius: 8px; border: 1px solid var(--border-boja); background: var(--pod-bg); color: var(--tekst-boja); margin-bottom: 8px; font-size: 14px; }
+        .gumb-primarni { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
+        .gumb-mini { background: var(--gumb-sekundarni); color: var(--gumb-sekundarni-tekst); border: 1px solid var(--border-boja); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .gubi-ocjena-red { display: flex; gap: 6px; margin-bottom: 8px; }
+        .gumb-brza-ocjena { flex: 1; padding: 12px; font-weight: bold; background: #334155; color: white; border: 1px solid var(--border-boja); border-radius: 8px; cursor: pointer; font-size: 16px; }
+        
+        .panik-zona { background: rgba(244, 63, 94, 0.1); border: 1px dashed #f43f5e; border-radius: 8px; padding: 10px; margin-top: 10px; }
+        .panik-naslov { font-size: 11px; font-weight: bold; color: #f43f5e; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between; }
+
+        .modal-svjedodzba-sadrzaj { max-width: 450px; background: var(--kartica-bg) !important; color: var(--tekst-boja) !important; padding: 20px; }
+        .svjedodzba-jednostavna { border: 1px dashed var(--accent-boja); padding: 15px; border-radius: 12px; background: var(--pod-bg); }
+        .svj-naslov-jednostavan { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 15px; color: var(--accent-boja); text-transform: uppercase; }
+        .svj-lista-predmeta { margin: 15px 0; }
+        .svj-red-jednostavan { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-boja); font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-naslov-lijevo">
+            <svg width="24" height="24" viewBox="0 0 512 512" style="vertical-align:middle; margin-right:4px;"><circle cx='256' cy='256' r='240' fill='%23ffffff'/><text x='150' y='330' font-family='sans-serif' font-size='240' font-weight='bold' fill='%230284c7'>E</text><text x='320' y='250' font-family='sans-serif' font-size='140' font-weight='bold' fill='%230284c7'>+</text></svg>
+            E-dnevnik v2.1 Pro
+        </div>
+        <div class="header-desno-grupa">
+            <div class="ime-trenutnog-racuna" id="glavniNaslovHeader">Učitavanje...</div>
+            <button class="gumb-zupcanik" onclick="togglePostavkeBlok(event)">⚙️</button>
+            <div class="postavke-blok-panel" id="postavkeBlok">
+                <div class="sekcija-box"><div class="sekcija-naslov">👤 Profili (v1.9)</div><div id="popisRacunaBlok"></div>
+                    <div style="margin-top:8px; display:flex; gap:4px;"><input type="text" id="novoImeRacuna" placeholder="Novi profil..." style="padding:5px; margin:0;"><button class="gumb-mini" onclick="kreirajNoviRacun()">+</button></div>
+                </div>
+                <div class="sekcija-box"><div class="sekcija-naslov">Sistem</div><button class="gumb-mini" onclick="obrisiSvePodatkeAplikacije()" style="width:100%; background:#dc3545; color:white; border:none;">⚠️ Reset aplikacije</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalPrviRacun">
+        <div class="modal-sadrzaj" style="text-align: center;">
+            <h3>Dobrodošao u E-dnevnik Plus</h3>
+            <input type="text" id="prviRacunIme" placeholder="Unesi svoje ime..." style="text-align:center;">
+            <button class="gumb-primarni" onclick="potvrdiPrviRacun()">Započni</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="svjedodzbaModal">
+        <div class="modal-sadrzaj modal-svjedodzba-sadrzaj">
+            <div class="svjedodzba-jednostavna">
+                <div class="svj-naslov-jednostavan">Pregled Svjedodžbe</div>
+                <div style="text-align:center; font-size:14px; margin-bottom:10px;">Učenik/ca: <b id="svjImeUcenika">-</b></div>
+                <hr style="border-color:var(--border-boja);">
+                <div class="svj-lista-predmeta" id="svjListaKontejner"></div>
+                <hr style="border-color:var(--border-boja);">
+                <div style="margin-top:10px; font-weight:bold; font-size:15px; text-align:center;">
+                    Ukupni uspjeh razreda: <span id="svjZakljucniUspjeh" style="color:var(--accent-boja);">-</span>
+                </div>
+            </div>
+            <button class="gumb-primarni" style="margin-top:15px;" onclick="zatvoriModal('svjedodzbaModal')">Zatvori</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="templateModal">
+        <div class="modal-sadrzaj" style="text-align:center;">
+            <h3>Odaberi razinu škole</h3>
+            <p style="font-size:13px; color:var(--tekst-svijetli); margin-bottom:15px;">Automatski učitaj sve standardne zajedničke predmete:</p>
+            
+            <button class="gumb-primarni" style="margin-bottom:10px; background:#22c55e;" onclick="ucitajTemplateSkole('osnovna')">🎒 Osnovna škola (Svi predmeti)</button>
+            <button class="gumb-primarni" style="margin-bottom:20px; background:#0284c7;" onclick="ucitajTemplateSkole('srednja')">🏛️ Srednja škola (Zajednički opći)</button>
+            
+            <div class="sekcija-box" style="text-align:left;">
+                <div class="sekcija-naslov">Dodaj izborne predmete i jezike:</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                    <button class="gumb-mini" onclick="dodajSpecificniPredmet('Njemački jezik', 'izborni')">+ Njemački jezik</button>
+                    <button class="gumb-mini" onclick="dodajSpecificniPredmet('Talijanski jezik', 'izborni')">+ Talijanski jezik</button>
+                    <button class="gumb-mini" onclick="dodajSpecificniPredmet('Vjeronauk', 'izborni')">+ Vjeronauk</button>
+                    <button class="gumb-mini" onclick="dodajSpecificniPredmet('Etika', 'izborni')">+ Etika</button>
+                </div>
+            </div>
+            
+            <button class="gumb-mini" style="margin-top:15px; width:100%;" onclick="zatvoriModal('templateModal')">Završi i zatvori</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="glavni-prosjek-box">
+            <span style="font-size:11px; font-weight:bold; letter-spacing:1px; color:var(--tekst-svijetli);">TRENUTNI + SIMULIRANI PROSJEK</span>
+            <div class="glavni-prosjek-iznos" id="ukupniGlavniProsjek">0.00</div>
+            <div class="roast-poruka" id="roastZon">"Učitaj predmete i provjeri ocjene!"</div>
+        </div>
+        
+        <button class="gumb-primarni" style="background:linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%); margin-bottom:15px;" onclick="generirajAutenticnuSvjedodzbu()">📜 Generiraj Svjedodžbu (Simple)</button>
+
+        <div class="sort-bar">
+            <button id="sortGumbPametno" class="aktivni-sort" onclick="postaviNacinSortiranja('pametno')">🧠 Pametno</button>
+            <button id="sortGumbNizi" onclick="postaviNacinSortiranja('nizi')">📉 Najniži</button>
+            <button id="sortGumbVisi" onclick="postaviNacinSortiranja('visi')">📈 Najviši</button>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <button class="gumb-mini" style="flex:1; padding:10px; font-weight:bold; border-color:#22c55e; color:#22c55e;" onclick="otvoriModal('templateModal')">📋 Odaberi Template Škole</button>
+            <button class="gumb-mini" style="flex:1; padding:10px; font-weight:bold; border-color:#38bdf8; color:#38bdf8;" onclick="toggleUnosPredmeta()">+ Novi Predmet</button>
+        </div>
+
+        <div id="builtInUnos" style="display:none; background:var(--kartica-bg); padding:15px; border-radius:12px; border:1px solid var(--border-boja); margin-bottom:15px;">
+            <input type="text" id="imePredmeta" placeholder="Ime predmeta...">
+            <select id="kategorijaPredmeta"><option value="obvezni">Obvezni predmet</option><option value="izborni">Izborni predmet</option><option value="fakultativni">Fakultativni predmet</option></select>
+            <button class="gumb-primarni" onclick="dodajNoviPredmet()">Spremi</button>
+        </div>
+
+        <div id="listaPredmeta"></div>
+    </div>
+
+    <script>
+        let aplikacijaPodaci = JSON.parse(localStorage.getItem("eDnevnikPlus_v21")) || null;
+        let trenutanNacinSorta = "pametno";
+        let simuliraneOcjene = {}; 
+
+        window.onload = function() { if (!aplikacijaPodaci) document.getElementById("modalPrviRacun").style.display = "block"; else pokreniAplikaciju(); };
+        function potvrdiPrviRacun() {
+            let ime = document.getElementById("prviRacunIme").value.trim() || "Profil";
+            aplikacijaPodaci = { aktivniRacunId: "r1", racuni: { "r1": { id: "r1", ime: ime, predmeti: [] } } };
+            spremiSveUMemoriju(); document.getElementById("modalPrviRacun").style.display = "none"; pokreniAplikaciju();
+        }
+        function pokreniAplikaciju() { prikaziPredmete(); azurirajPrikazPostavkiBlok(); }
+        function dohvatiAktivniRacun() { return aplikacijaPodaci.racuni[aplikacijaPodaci.aktivniRacunId]; }
+        function dohvatiTrenutnePredmete() { return dohvatiAktivniRacun().predmeti; }
+        function spremiSveUMemoriju() { localStorage.setItem("eDnevnikPlus_v21", JSON.stringify(aplikacijaPodaci)); }
+        function togglePostavkeBlok(e) { e.stopPropagation(); let p = document.getElementById("postavkeBlok"); p.style.display = p.style.display === "block" ? "none" : "block"; }
+        function otvoriModal(id) { document.getElementById(id).style.display = "block"; }
+        function zatvoriModal(id) { document.getElementById(id).style.display = "none"; }
+        function toggleUnosPredmeta() { let x = document.getElementById("builtInUnos"); x.style.display = x.style.display === "block" ? "none" : "block"; }
+        function postaviNacinSortiranja(tip) { trenutanNacinSorta = tip; prikaziPredmete(); }
+
+        function generirajAutenticnuSvjedodzbu() {
+            let racun = dohvatiAktivniRacun(); let predmeti = dohvatiTrenutnePredmete();
+            document.getElementById("svjImeUcenika").innerText = racun.ime;
+            let kont = document.getElementById("svjListaKontejner"); kont.innerHTML = "";
+            let zbroj = 0, broj = 0;
+
+            predmeti.forEach(p => {
+                let sveOcjene = [...p.ocjene, ...(simuliraneOcjene[p.id] || [])];
+                let pr = sveOcjene.length > 0 ? sveOcjene.reduce((a,b)=>a+b,0)/sveOcjene.length : 0;
+                let zak = p.ručniZakljucak > 0 ? p.ručniZakljucak : Math.round(pr);
+                if(sveOcjene.length > 0 || p.ručniZakljucak > 0) { zbroj += zak; broj++; }
+                
+                kont.innerHTML += `<div class="svj-red-jednostavan"><span>${p.naziv}</span><b>${zak || '-'}</b></div>`;
+            });
+
+            let konProsjek = broj > 0 ? (zbroj / broj) : 0;
+            document.getElementById("svjZakljucniUspjeh").innerText = konProsjek.toFixed(2);
+            otvoriModal("svjedodzbaModal");
+        }
+
+        function ucitajTemplateSkole(tip) {
+            let predmetiZaUbaciti = [];
+            if(tip === 'osnovna') {
+                predmetiZaUbaciti = ["Hrvatski jezik", "Likovna kultura", "Glazbena kultura", "Strani jezik", "Matematika", "Priroda", "Biologija", "Kemija", "Fizika", "Povijest", "Geografija", "Tehnička kultura", "Tjelesna i zdravstvena kultura", "Informatika"];
+            } else if(tip === 'srednja') {
+                predmetiZaUbaciti = ["Hrvatski jezik", "Engleski jezik", "Povijest", "Geografija", "Matematika", "Fizika", "Kemija", "Biologija", "Tjelesna i zdravstvena kultura", "Računalstvo/Informatika", "Politika i gospodarstvo"];
+            }
+            
+            predmetiZaUbaciti.forEach(n => { 
+                if(!dohvatiTrenutnePredmete().some(x => x.naziv === n)) {
+                    dohvatiTrenutnePredmete().push({ id: Math.random(), naziv: n, kategorija: "obvezni", ocjene: [], ručniZakljucak: 0, ciljanaOcjena: 0 }); 
+                }
+            });
+            spremiSveUMemoriju(); prikaziPredmete();
+        }
+
+        function dodajSpecificniPredmet(naziv, kat) {
+            if(!dohvatiTrenutnePredmete().some(x => x.naziv === naziv)) {
+                dohvatiTrenutnePredmete().push({ id: Math.random(), naziv: naziv, kategorija: kat, ocjene: [], ručniZakljucak: 0, ciljanaOcjena: 0 });
+                spremiSveUMemoriju(); prikaziPredmete();
+                alert(`Dodan predmet: ${naziv}!`);
+            } else {
+                alert("Ovaj predmet je već dodan.");
+            }
+        }
+
+        function kreirajNoviRacun() {
+            let ime = document.getElementById("novoImeRacuna").value.trim(); if(!ime) return;
+            let nid = "r_" + Date.now(); aplikacijaPodaci.racuni[nid] = { id: nid, ime: ime, predmeti: [] };
+            aplikacijaPodaci.aktivniRacunId = nid; document.getElementById("novoImeRacuna").value = ""; spremiSveUMemoriju(); azurirajPrikazPostavkiBlok(); prikaziPredmete();
+        }
+        function prebaciNaRacun(id) { aplikacijaPodaci.aktivniRacunId = id; simuliraneOcjene = {}; spremiSveUMemoriju(); azurirajPrikazPostavkiBlok(); prikaziPredmete(); }
+        
+        function azurirajPrikazPostavkiBlok() {
+            let r = dohvatiAktivniRacun(); document.getElementById("glavniNaslovHeader").innerText = r.ime.toUpperCase();
+            let kont = document.getElementById("popisRacunaBlok"); if(!kont) return; kont.innerHTML = "";
+            Object.keys(aplikacijaPodaci.racuni).forEach(id => {
+                let akt = id === aplikacijaPodaci.aktivniRacunId;
+                kont.innerHTML += `<div style="padding:4px 0; cursor:pointer; font-weight:${akt?'bold':'normal'};" onclick="prebaciNaRacun('${id}')">${aplikacijaPodaci.racuni[id].ime}</div>`;
+            });
+        }
+
+        function dnoKalkulacijaCilja(sveOcjene, cilj) {
+            if (!cilj || cilj <= 1) return "Bez cilja";
+            let pr = sveOcjene.length > 0 ? sveOcjene.reduce((a,b)=>a+b,0)/sveOcjene.length : 0;
+            let zak = Math.round(pr);
+            if (sveOcjene.length > 0 && zak >= cilj) return "🎯 Cilj ostvaren! Stabilno je.";
+            
+            let prag = cilj - 0.5;
+            let privremene = [...sveOcjene];
+            let brojacPetica = 0;
+            
+            while ((privremene.reduce((a,b)=>a+b,0)/privremene.length) < prag && brojacPetica < 15) {
+                privremene.push(5);
+                brojacPetica++;
+            }
+            return `⚠️ Treba ti još ovoliko petica (5): <b>${brojacPetica}</b>`;
+        }
+
+        function dodajNoviPredmet() {
+            let ime = document.getElementById("imePredmeta").value.trim(); if(!ime) return;
+            let kat = document.getElementById("kategorijaPredmeta").value;
+            dohvatiTrenutnePredmete().push({ id: Date.now(), naziv: ime, kategorija: kat, ocjene: [], ručniZakljucak: 0, ciljanaOcjena: 0 });
+            spremiSveUMemoriju(); toggleUnosPredmeta(); prikaziPredmete();
+        }
+
+        function ubaciBrzuOcenu(pId, val) { let p = dohvatiTrenutnePredmete().find(x => x.id == pId); if(p) { p.ocjene.push(val); spremiSveUMemoriju(); prikaziPredmete(); } }
+        function simulirajOcjenu(pId, val) { if(!simuliraneOcjene[pId]) simuliraneOcjene[pId] = []; simuliraneOcjene[pId].push(val); prikaziPredmete(); }
+        function ocistiSimulaciju(pId) { simuliraneOcjene[pId] = []; prikaziPredmete(); }
+        function obrisiKliknutuOcenu(pId, oIdx) { let p = dohvatiTrenutnePredmete().find(x => x.id == pId); if(p && confirm("Ukloni ocjenu?")) { p.ocjene.splice(oIdx, 1); spremiSveUMemoriju(); prikaziPredmete(); } }
+        function promijeniZakljucnuOcenu(pId, val) { let p = dohvatiTrenutnePredmete().find(x => x.id == pId); if(p) { p.ručniZakljucak = parseInt(val); spremiSveUMemoriju(); prikaziPredmete(); } }
+        function postaviCiljNaPredmet(pId, val) { let p = dohvatiTrenutnePredmete().find(x => x.id == pId); if(p) { p.ciljanaOcjena = parseInt(val); spremiSveUMemoriju(); prikaziPredmete(); } }
+        function toggleSadrzajKartice(id) { let panel = document.getElementById(`unutarnji-sadrzaj-${id}`); panel.style.display = panel.style.display === "block" ? "none" : "block"; }
+        function obrisiPredmet(id) { if(confirm("Ukloni predmet?")) { let r = dohvatiAktivniRacun(); r.predmeti = r.predmeti.filter(x=>x.id != id); spremiSveUMemoriju(); prikaziPredmete(); } }
+        function obrisiSvePodatkeAplikacije() { if(confirm("Reset aplikacije?")) { localStorage.clear(); location.reload(); } }
+
+        function prikaziPredmete() {
+            let listaDiv = document.getElementById("listaPredmeta"); if(!listaDiv) return; listaDiv.innerHTML = "";
+            let predmeti = dohvatiTrenutnePredmete(); let zbrojZ = 0, brojZ = 0;
+
+            if(predmeti.length === 0) { document.getElementById("ukupniGlavniProsjek").innerText = "0.00"; return; }
+
+            let obradeni = predmeti.map(p => {
+                let sveOcjene = [...p.ocjene, ...(simuliraneOcjene[p.id] || [])];
+                let pr = sveOcjene.length > 0 ? sveOcjene.reduce((a,b)=>a+b,0)/sveOcjene.length : 0;
+                let zak = p.ručniZakljucak > 0 ? p.ručniZakljucak : Math.round(pr);
+                let statusCilja = dnoKalkulacijaCilja(sveOcjene, p.ciljanaOcjena);
+                return { ...p, pr, zak, sveOcjene, statusCilja };
+            });
+
+            if (trenutanNacinSorta === "pametno" || trenutanNacinSorta === "nizi") { obradeni.sort((a, b) => a.pr - b.pr); } 
+            else if (trenutanNacinSorta === "visi") { obradeni.sort((a, b) => b.pr - a.pr); }
+
+            obradeni.forEach(p => {
+                let oHtml = p.ocjene.map((o, i) => `<span class="ocjena-broj" onclick="obrisiKliknutuOcenu(${p.id}, ${i})">${o}</span>`).join('');
+                let sHtml = (simuliraneOcjene[p.id] || []).map(o => `<span class="ocjena-broj simulirana">${o}</span>`).join('');
+                if(p.sveOcjene.length > 0 || p.zak > 0) { zbrojZ += p.zak; brojZ++; }
+
+                let ciljEkran = p.ciljanaOcjena > 0 ? `<div class="prikaz-cilja-box">🎯 Cilj: ${p.ciljanaOcjena} | ${p.statusCilja}</div>` : "";
+
+                listaDiv.innerHTML += `
+                    <div class="predmet-kartica ${p.zak<=2?'kritican':'stabilan'}">
+                        <div class="predmet-glavno" onclick="toggleSadrzajKartice(${p.id})">
+                            <div class="predmet-info"><h4>${p.naziv}</h4><p style="text-transform:uppercase; font-size:10px; color:var(--tekst-svijetli);">${p.kategorija}</p></div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size: 14px; font-weight: bold;">${p.sveOcjene.length > 0 ? p.pr.toFixed(2) : '0.00'}</span>
+                                <div class="plavi-kruzic">${p.zak || '-'}</div>
+                            </div>
+                        </div>
+                        
+                        ${ciljEkran}
+
+                        <div id="unutarnji-sadrzaj-${p.id}" style="display:none; margin-top:10px; border-top:1px solid var(--border-boja); padding-top:10px;">
+                            <div style="margin-bottom:8px;">${oHtml || '<span style="color:#666; font-size:12px;">Nema ocjena. </span>'}${sHtml}</div>
+                            
+                            <div style="font-size:11px; font-weight:bold; color:var(--accent-boja); margin-bottom:4px;">DODAJ OCJENU:</div>
+                            <div class="gubi-ocjena-red">
+                                ${[1,2,3,4,5].map(v=>`<button class="gumb-brza-ocjena" onclick="ubaciBrzuOcenu(${p.id},${v})">+${v}</button>`).join('')}
+                            </div>
+                            
+                            <div class="panik-zona">
+                                <div class="panik-naslov"><span>🔍 ŠTO AKO DOBIJEM?</span> <button class="gumb-mini" style="background:#e11d48; border:none; padding:2px 6px;" onclick="ocistiSimulaciju(${p.id})">Reset</button></div>
+                                <div class="gubi-ocjena-red">
+                                    ${[1,2,3,4,5].map(v=>`<button class="gumb-brza-ocjena" style="background:#e11d48;border:none;" onclick="simulirajOcjenu(${p.id},${v})">?${v}</button>`).join('')}
+                                </div>
+                            </div>
+
+                            <div style="margin-top:10px; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px;">
+                                <label style="font-size:11px; font-weight:bold; color:var(--accent-boja);">POSTAVI ŽELJENU OCJENU ZA KRAJ GODINE:</label>
+                                <select onchange="postaviCiljNaPredmet(${p.id}, this.value)" style="margin-top:4px; margin-bottom:0;">
+                                    <option value="0" ${p.ciljanaOcjena===0?'selected':''}>Bez cilja</option>
+                                    <option value="2" ${p.ciljanaOcjena===2?'selected':''}>Ciljaj Dovoljan (2)</option>
+                                    <option value="3" ${p.ciljanaOcjena===3?'selected':''}>Ciljaj Dobar (3)</option>
+                                    <option value="4" ${p.ciljanaOcjena===4?'selected':''}>Ciljaj Vrlo Dobar (4)</option>
+                                    <option value="5" ${p.ciljanaOcjena===5?'selected':''}>Ciljaj Odličan (5)</option>
+                                </select>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; margin-top:12px; align-items:center;">
+                                <span style="font-size:11px; color:var(--tekst-svijetli);">Ručno zaključi (v1.9):</span>
+                                <select onchange="promijeniZakljucnuOcenu(${p.id}, this.value)" style="width:auto; padding:2px; margin:0; font-size:12px;">
+                                    <option value="0" ${p.ručniZakljucak===0?'selected':''}>Auto (Prosjek)</option>
+                                    <option value="1" ${p.ručniZakljucak===1?'selected':''}>1</option><option value="2" ${p.ručniZakljucak===2?'selected':''}>2</option>
+                                    <option value="3" ${p.ručniZakljucak===3?'selected':''}>3</option><option value="4" ${p.ručniZakljucak===4?'selected':''}>4</option><option value="5" ${p.ručniZakljucak===5?'selected':''}>5</option>
+                                </select>
+                            </div>
+                            
+                            <div style="display:flex; justify-content:flex-end; margin-top:12px;"><button onclick="obrisiPredmet(${p.id})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:12px;">🗑️ Ukloni predmet</button></div>
+                        </div>
+                    </div>`;
+            });
+
+            let konacniProsjek = brojZ > 0 ? (zbrojZ / brojZ) : 0;
+            document.getElementById("ukupniGlavniProsjek").innerText = konacniProsjek.toFixed(2);
+            
+            let roast = "Sjedni i uči, popravni je blizu!";
+            if(konacniProsjek >= 4.5) roast = "Ti si apsolutni genijalac! Samo tako nastavi! 🏆";
+            else if(konacniProsjek >= 3.5) roast = "Čvrsta četvorka. Možeš ti i bolje ako zapneš! 💪";
+            else if(konacniProsjek >= 2.5) roast = "Opasna zona, nemoj previše visiti na TikToku! 📉";
+            document.getElementById("roastZon").innerText = roast;
+        }
+    </script>
+</body>
+</html>
