@@ -25,4 +25,6 @@ Sve radi potpuno lokalno u pregledniku (podaci se spremaju na tvoj uređaj), št
 Projekt je u potpunosti napisan u **jednom jedinom HTML fileu** (HTML + CSS + JS). 
 
 1. Preuzmite kod (`index.html`).
-2. Otvorite ga u bilo kojem web pregledniku ili ga besplatno hostajte putem **GitHub Pages** za pristup s mobitela u bilo kojem trenutku.
+2. Otvorite ga u bilo kojem web preglednik ili otvorite moj link ​Otvori link: https://inspektor5090.github.io/E-Dnevnik-plus/
+3.​Klikni na 3 točkice: U pregledniku gore desno otvori opcije.
+​5.Dodaj na početni zaslon: Klikni na tu opciju i na kraju imaš aplikaciju.
